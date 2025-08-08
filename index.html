@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local H3 Chat</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 12px; }
+    #app { display:flex; gap:12px; }
+    #left { width: 320px; }
+    #chat { flex:1; display:flex; flex-direction:column; height:80vh; }
+    #messages { flex:1; overflow:auto; border:1px solid #ddd; padding:8px; }
+    #users { border:1px solid #ddd; padding:8px; height:200px; overflow:auto; }
+    .msg { margin-bottom:8px; }
+    .meta { font-size:0.9em; color:#555 }
+  </style>
+</head>
+<body>
+  <h2>Local H3 Chat — prosty</h2>
+  <div id="app">
+    <div id="left">
+      <label>Nick: <input id="nick" value="Anon" /></label>
+      <div style="margin-top:8px">
+        <button id="shareLoc">Udostępnij lokalizację</button>
+        <select id="radius">
+          <option value="0">Tylko komórka</option>
+          <option value="1" selected>1 (najbliższe)</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+
+      <h4>Użytkownicy w pobliżu</h4>
+      <div id="users">(brak danych)</div>
+    </div>
+
+    <div id="chat">
+      <div id="messages"></div>
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <input id="text" style="flex:1" placeholder="Napisz wiadomość..." />
+        <button id="send">Wyślij</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- h3-js from unpkg -->
+  <script src="https://unpkg.com/h3-js@4.1.0/dist/h3-js.umd.js"></script>
+  <script>
+    const nickEl = document.getElementById('nick');
+    const shareBtn = document.getElementById('shareLoc');
+    const usersEl = document.getElementById('users');
+    const messagesEl = document.getElementById('messages');
+    const sendBtn = document.getElementById('send');
+    const textEl = document.getElementById('text');
+    const radiusEl = document.getElementById('radius');
+
+    const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+
+    let clientId = null;
+    let myH3 = null;
+    let H3_RES = 8;
+    let nearbyUsers = new Map();
+
+    function appendMessage(html) {
+      const d = document.createElement('div');
+      d.className = 'msg';
+      d.innerHTML = html;
+      messagesEl.appendChild(d);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function renderUsers() {
+      usersEl.innerHTML = '';
+      if (nearbyUsers.size === 0) { usersEl.textContent = '(brak danych)'; return; }
+      for (const [id, u] of nearbyUsers.entries()) {
+        const el = document.createElement('div');
+        el.textContent = u.name + (id === clientId ? ' (Ty)' : '');
+        usersEl.appendChild(el);
+      }
+    }
+
+    ws.addEventListener('message', (ev) => {
+      let msg = null;
+      try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      console.log('[DEBUG] Received:', msg);
+      if (msg.type === 'init') {
+        clientId = msg.id;
+        H3_RES = msg.h3Resolution || H3_RES;
+        appendMessage(`<div class="meta">Połączono. Twój id: ${clientId}. H3 res: ${H3_RES}</div>`);
+      } else if (msg.type === 'joined') {
+        appendMessage(`<div class="meta">Zarejestrowano na serwerze (id: ${msg.id})</div>`);
+      } else if (msg.type === 'presence_update') {
+        console.log(`[DEBUG] User presence update: ${msg.name} at ${msg.h3}`);
+        nearbyUsers.set(msg.id, { name: msg.name, h3: msg.h3, ts: Date.now() });
+        renderUsers();
+      } else if (msg.type === 'chat') {
+        console.log(`[DEBUG] Received chat from ${msg.name}: "${msg.text}"`);
+        appendMessage(`<strong>${msg.name}</strong> <span class="meta">${new Date(msg.ts).toLocaleTimeString()}</span><div>${escapeHtml(msg.text)}</div>`);
+      } else if (msg.type === 'left') {
+        nearbyUsers.delete(msg.id);
+        renderUsers();
+        appendMessage(`<div class="meta">${msg.name} opuścił rozmowę.</div>`);
+      } else if (msg.type === 'error') {
+        appendMessage(`<div class="meta">Błąd: ${msg.message}</div>`);
+      }
+    });
+
+    function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    function sendJoin() {
+      const name = nickEl.value || 'Anon';
+      console.log(`[DEBUG] Sending join: name=${name}, h3=${myH3}`);
+      ws.send(JSON.stringify({ type: 'join', name, h3: myH3 }));
+    }
+
+    function sendPresence() {
+      console.log(`[DEBUG] Sending presence: h3=${myH3}`);
+      ws.send(JSON.stringify({ type: 'presence', h3: myH3 }));
+    }
+
+    function sendChat() {
+      const txt = textEl.value.trim();
+      if (!txt) return;
+      const radius = parseInt(radiusEl.value, 10) || 1;
+      console.log(`[DEBUG] Sending chat: text="${txt}", radius=${radius}, h3=${myH3}`);
+      ws.send(JSON.stringify({ type: 'chat', text: txt, radius, h3: myH3 }));
+      appendMessage(`<em>Ty</em> <div>${escapeHtml(txt)}</div>`);
+      textEl.value = '';
+    }
+
+    sendBtn.addEventListener('click', sendChat);
+    textEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+
+    shareBtn.addEventListener('click', () => {
+      if (!navigator.geolocation) { alert('Brak geolokalizacji w przeglądarce'); return; }
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        myH3 = h3.latLngToCell(lat, lng, H3_RES);
+        console.log(`[DEBUG] Location: lat=${lat}, lng=${lng}, H3=${myH3}`);
+        appendMessage(`<div class="meta">Twoja komórka H3: ${myH3}</div>`);
+        sendJoin();
+        sendPresence();
+      }, (err) => {
+        alert('Błąd geo: ' + err.message);
+      }, { enableHighAccuracy: false });
+    });
+
+    setInterval(() => {
+      if (myH3) sendPresence();
+    }, 10_000);
+
+    setInterval(() => {
+      const now = Date.now();
+      for (const [id, u] of nearbyUsers.entries()) {
+        if (now - u.ts > 30_000) nearbyUsers.delete(id);
+      }
+      renderUsers();
+    }, 5_000);
+
+  </script>
+</body>
+</html>
