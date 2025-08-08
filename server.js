@@ -18,6 +18,11 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+// Lightweight healthcheck for Railway
+app.get('/health', (_req, res) => {
+  res.status(200).send('ok');
+});
+
 // Serve React build files in production, or development files
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static('./client/dist'));
