@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Polygon, Marker, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Marker } from 'react-leaflet';
 import { LatLng, Icon } from 'leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowsPointingOutIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -122,8 +122,8 @@ export const BroadcastAreaMap: React.FC<BroadcastAreaMapProps> = ({
     return colorMap[mainColor] || '#9ca3af';
   };
 
-  // Common map content
-  const renderMapContent = (isFullscreenMode: boolean) => (
+  // Common map content  
+  const renderMapContent = () => (
     <>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -178,7 +178,7 @@ export const BroadcastAreaMap: React.FC<BroadcastAreaMapProps> = ({
           doubleClickZoom={false}
           touchZoom={false}
         >
-          {renderMapContent(false)}
+          {renderMapContent()}
         </MapContainer>
         
         {/* Fullscreen button */}
@@ -255,7 +255,7 @@ export const BroadcastAreaMap: React.FC<BroadcastAreaMapProps> = ({
                   doubleClickZoom={true}
                   touchZoom={true}
                 >
-                  {renderMapContent(true)}
+                  {renderMapContent()}
                 </MapContainer>
               </div>
               
