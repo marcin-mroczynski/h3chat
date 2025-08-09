@@ -38,14 +38,29 @@ export const useWebSocket = () => {
       
       // Re-send join and presence on reconnect
       const state = useChatStore.getState();
-      if (state.nickname && state.myH3) {
-        console.log('[WebSocket] Rejoining after reconnect');
-        const { sendJoin, sendPresence } = useWebSocketActions();
+      if (state.nickname && state.myH3 && wsRef.current) {
+        console.log('[WebSocket] Rejoining after reconnect with:', state.nickname, state.myH3);
+        
+        // Send directly through websocket to avoid race conditions
+        const joinMessage = {
+          type: 'join',
+          name: state.nickname,
+          h3: state.myH3
+        };
+        
+        const presenceMessage = {
+          type: 'presence',
+          h3: state.myH3
+        };
+        
         // Small delay to ensure connection is stable
         setTimeout(() => {
-          sendJoin(state.myH3!);
-          sendPresence(state.myH3!);
-        }, 100);
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify(joinMessage));
+            wsRef.current.send(JSON.stringify(presenceMessage));
+            console.log('[WebSocket] Sent rejoin messages');
+          }
+        }, 200);
       }
     };
 

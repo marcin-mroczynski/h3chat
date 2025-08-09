@@ -126,6 +126,7 @@ wss.on('connection', function connection(ws, req) {
       client.name = msg.name || 'Anon';
       const newH3 = msg.h3 || null;
       console.log(`[DEBUG] Client ${clientId} joining with name: ${client.name}, H3: ${newH3}`);
+      console.log(`[DEBUG] Current clients count: ${clients.size}`);
       if (client.h3 !== newH3) {
         removeClientFromH3(clientId, client.h3);
         client.h3 = newH3;
