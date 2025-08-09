@@ -34,42 +34,58 @@ export const useWebSocket = () => {
 
     wsRef.current.onopen = () => {
       console.log('[WebSocket] Connected');
-      const { setConnected } = useChatStore.getState();
-      setConnected(true);
       
-      // Re-send join and presence on reconnect
-      const store = useChatStore.getState();
-      if (store.nickname && store.myH3 && wsRef.current) {
-        console.log('[WebSocket] Rejoining after reconnect with:', store.nickname, store.myH3);
-        
-        // Send directly through websocket to avoid race conditions
-        const joinMessage = {
-          type: 'join',
-          name: store.nickname,
-          h3: store.myH3
-        };
-        
-        const presenceMessage = {
-          type: 'presence',
-          h3: store.myH3
-        };
-        
-        // Small delay to ensure connection is stable
-        setTimeout(() => {
-          if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Update store state safely 
+      setTimeout(() => {
+        try {
+          const { setConnected } = useChatStore.getState();
+          setConnected(true);
+          
+          // Re-send join and presence on reconnect
+          const store = useChatStore.getState();
+          if (store.nickname && store.myH3 && wsRef.current?.readyState === WebSocket.OPEN) {
+            console.log('[WebSocket] Rejoining after reconnect with:', store.nickname, store.myH3);
+            
+            // Send join first, then presence
+            const joinMessage = {
+              type: 'join',
+              name: store.nickname,
+              h3: store.myH3
+            };
+            
             wsRef.current.send(JSON.stringify(joinMessage));
-            wsRef.current.send(JSON.stringify(presenceMessage));
-            console.log('[WebSocket] Sent rejoin messages');
+            console.log('[WebSocket] Sent join message');
+            
+            // Send presence after a small delay
+            setTimeout(() => {
+              if (wsRef.current?.readyState === WebSocket.OPEN) {
+                const presenceMessage = {
+                  type: 'presence',
+                  h3: store.myH3
+                };
+                wsRef.current.send(JSON.stringify(presenceMessage));
+                console.log('[WebSocket] Sent presence message');
+              }
+            }, 100);
           }
-        }, 200);
-      }
+        } catch (error) {
+          console.error('[WebSocket] Error in onopen handler:', error);
+        }
+      }, 50);
     };
 
     wsRef.current.onclose = () => {
       console.log('[WebSocket] Disconnected');
-      const { setConnected } = useChatStore.getState();
-      setConnected(false);
-      setWebSocketRef(null);
+      
+      setTimeout(() => {
+        try {
+          const { setConnected } = useChatStore.getState();
+          setConnected(false);
+          setWebSocketRef(null);
+        } catch (error) {
+          console.error('[WebSocket] Error in onclose handler:', error);
+        }
+      }, 0);
       
       // Optional: Auto-reconnect after 5 seconds (you can disable this if not needed)
       setTimeout(() => {
