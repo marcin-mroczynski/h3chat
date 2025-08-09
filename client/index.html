@@ -2,12 +2,43 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    
+    <!-- PWA Meta Tags -->
+    <title>H3 Local Chat</title>
+    <meta name="description" content="Geolocation-based chat using H3 hexagonal indexing system" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="H3Chat" />
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-180.png" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Additional PWA Meta -->
+    <meta name="author" content="H3 Local Chat" />
+    <meta name="keywords" content="chat, geolocation, H3, local, communication" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('[PWA] Service worker registered:', registration);
+            })
+            .catch((error) => {
+              console.error('[PWA] Service worker registration failed:', error);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
