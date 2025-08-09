@@ -35,6 +35,18 @@ export const useWebSocket = () => {
     wsRef.current.onopen = () => {
       console.log('[WebSocket] Connected');
       useChatStore.getState().setConnected(true);
+      
+      // Re-send join and presence on reconnect
+      const state = useChatStore.getState();
+      if (state.nickname && state.myH3) {
+        console.log('[WebSocket] Rejoining after reconnect');
+        const { sendJoin, sendPresence } = useWebSocketActions();
+        // Small delay to ensure connection is stable
+        setTimeout(() => {
+          sendJoin(state.myH3!);
+          sendPresence(state.myH3!);
+        }, 100);
+      }
     };
 
     wsRef.current.onclose = () => {

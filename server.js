@@ -125,6 +125,33 @@ wss.on('connection', function connection(ws, req) {
       }
       // ack join
       send(ws, { type: 'joined', id: clientId });
+      
+      // Send current users in the same H3 area after join
+      if (client.h3) {
+        const ring = h3.gridDisk(client.h3, 1); // Check immediate area
+        const nearbyUsers = [];
+        for (const h of ring) {
+          const set = h3IndexMap.get(h);
+          if (set) {
+            for (const cid of set) {
+              if (cid !== clientId) {
+                const c = clients.get(cid);
+                if (c && c.name && c.h3) {
+                  nearbyUsers.push({ 
+                    type: 'presence_update', 
+                    id: cid, 
+                    name: c.name, 
+                    h3: c.h3 
+                  });
+                }
+              }
+            }
+          }
+        }
+        // Send all nearby users to the newly joined client
+        nearbyUsers.forEach(user => send(ws, user));
+        console.log(`[DEBUG] Sent ${nearbyUsers.length} nearby users to ${clientId}`);
+      }
 
     } else if (msg.type === 'presence') {
       // update presence (h3)
