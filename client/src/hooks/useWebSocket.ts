@@ -34,23 +34,24 @@ export const useWebSocket = () => {
 
     wsRef.current.onopen = () => {
       console.log('[WebSocket] Connected');
-      useChatStore.getState().setConnected(true);
+      const { setConnected } = useChatStore.getState();
+      setConnected(true);
       
       // Re-send join and presence on reconnect
-      const state = useChatStore.getState();
-      if (state.nickname && state.myH3 && wsRef.current) {
-        console.log('[WebSocket] Rejoining after reconnect with:', state.nickname, state.myH3);
+      const store = useChatStore.getState();
+      if (store.nickname && store.myH3 && wsRef.current) {
+        console.log('[WebSocket] Rejoining after reconnect with:', store.nickname, store.myH3);
         
         // Send directly through websocket to avoid race conditions
         const joinMessage = {
           type: 'join',
-          name: state.nickname,
-          h3: state.myH3
+          name: store.nickname,
+          h3: store.myH3
         };
         
         const presenceMessage = {
           type: 'presence',
-          h3: state.myH3
+          h3: store.myH3
         };
         
         // Small delay to ensure connection is stable
@@ -66,7 +67,8 @@ export const useWebSocket = () => {
 
     wsRef.current.onclose = () => {
       console.log('[WebSocket] Disconnected');
-      useChatStore.getState().setConnected(false);
+      const { setConnected } = useChatStore.getState();
+      setConnected(false);
       setWebSocketRef(null);
       
       // Optional: Auto-reconnect after 5 seconds (you can disable this if not needed)
