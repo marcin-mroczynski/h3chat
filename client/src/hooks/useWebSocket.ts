@@ -54,12 +54,13 @@ export const useWebSocket = () => {
       useChatStore.getState().setConnected(false);
       setWebSocketRef(null);
       
-      // Reconnect after 3 seconds, but only if not manually closed
+      // Optional: Auto-reconnect after 5 seconds (you can disable this if not needed)
       setTimeout(() => {
         if (wsRef.current?.readyState === WebSocket.CLOSED) {
+          console.log('[WebSocket] Attempting reconnect...');
           connect();
         }
-      }, 3000);
+      }, 5000);
     };
 
     wsRef.current.onerror = (error) => {

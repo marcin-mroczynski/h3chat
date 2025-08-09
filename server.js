@@ -94,6 +94,15 @@ wss.on('connection', function connection(ws, req) {
   const clientId = nanoid();
   clients.set(clientId, { ws, name: null, h3: null, lastSeen: Date.now(), rate: [] });
 
+  // Heartbeat to keep connection alive
+  const heartbeat = setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.ping();
+    } else {
+      clearInterval(heartbeat);
+    }
+  }, 30000); // 30 seconds
+
   // Send assigned id to client
   send(ws, { type: 'init', id: clientId, h3Resolution: H3_RESOLUTION });
 
@@ -203,6 +212,7 @@ wss.on('connection', function connection(ws, req) {
   });
 
   ws.on('close', function() {
+    clearInterval(heartbeat);
     const client = clients.get(clientId);
     if (client) {
       removeClientFromH3(clientId, client.h3);
@@ -210,6 +220,13 @@ wss.on('connection', function connection(ws, req) {
       if (client.h3) {
         broadcastToH3Ring(clientId, client.h3, 1, { type: 'left', id: clientId, name: client.name });
       }
+    }
+  });
+
+  ws.on('pong', () => {
+    // Client responded to ping - connection is alive
+    if (clients.has(clientId)) {
+      clients.get(clientId).lastSeen = Date.now();
     }
   });
 });
