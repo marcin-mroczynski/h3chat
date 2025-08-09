@@ -27,7 +27,7 @@ export const AddressSearch: React.FC<AddressSearchProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>();
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
