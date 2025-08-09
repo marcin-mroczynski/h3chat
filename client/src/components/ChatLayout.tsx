@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
 import { LocationSetup } from './LocationSetup';
 import { useChatStore } from '../store/chatStore';
+import { AboutModal } from './AboutModal';
 
 export const ChatLayout: React.FC = () => {
   const { myH3 } = useChatStore();
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   if (!myH3) {
     return <LocationSetup />;
@@ -20,7 +22,7 @@ export const ChatLayout: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto"
       >
-        <header className="mb-6">
+        <header className="mb-6 flex items-start justify-between gap-4">
           <motion.h1
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -28,14 +30,24 @@ export const ChatLayout: React.FC = () => {
           >
             H3 Local Chat
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-gray-600 mt-2"
-          >
-            Chat with people in your geographical neighborhood
-          </motion.p>
+          <div className="flex items-center gap-3">
+            <motion.p
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-gray-600 mt-2 hidden sm:block"
+            >
+              Chat with people in your geographical neighborhood
+            </motion.p>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setAboutOpen(true)}
+              className="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              About
+            </motion.button>
+          </div>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[80vh]">
@@ -59,6 +71,7 @@ export const ChatLayout: React.FC = () => {
           </motion.div>
         </div>
       </motion.div>
+      <AboutModal isOpen={aboutOpen} onClose={() => setAboutOpen(false)} />
     </div>
   );
 };

@@ -2,6 +2,8 @@
 
 A modern geolocation-based chat application using H3 hexagonal indexing system. Users can chat with people in their geographical neighborhood based on H3 cell proximity.
 
+➡️ Want a human-friendly overview (PL)? Read [ABOUT.md](./ABOUT.md).
+
 ## ✨ Features
 
 - **🔷 H3 Geolocation System** - Precise hexagonal cell-based location matching
